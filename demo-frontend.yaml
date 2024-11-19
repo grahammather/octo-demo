@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: demo-frontend
-        image: ghcr.io/octopussolutionsengineering/octopus-zero-to-hero/demo-frontend:2024.10.21.19 # Replace with your container image
+        image: ghcr.io/grahammather/flask-token-app:0.0.1 # Replace with your container image
         ports:
         - containerPort: 5002 # Port exposed by the container (matches the Dockerfile)
         env:
@@ -76,6 +76,9 @@ spec:
   path:  octo-demo/demo-frontend-secret
 # version: 2
   refreshAfter: 30s
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: demo-frontend-deployment
   destination:
     create: true
     name: demo-frontend-secret
