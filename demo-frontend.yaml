@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: demo-frontend
-        image: ghcr.io/grahammather/flask-token-app:0.0.1 # Replace with your container image
+        image: ghcr.io/grahammather/flask-token-app:0.0.2 # Replace with your container image
         ports:
         - containerPort: 5002 # Port exposed by the container (matches the Dockerfile)
         env:
