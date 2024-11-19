@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-frontend-deployment
+  labels:
+    app: demo-frontend
+spec:
+  replicas: 2 # Number of pod replicas
+  selector:
+    matchLabels:
+      app: demo-frontend
+  template:
+    metadata:
+      labels:
+        app: demo-frontend
+    spec:
+      containers:
+      - name: demo-frontend
+        image: ghcr.io/octopussolutionsengineering/octopus-zero-to-hero/demo-frontend:2024.10.21.19 # Replace with your container image
+        ports:
+        - containerPort: 5002 # Port exposed by the container (matches the Dockerfile)
+        env:
+        - name: TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: demo-frontend-secret # Reference to the Secret object
+              key: token
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-frontend-service
+  labels:
+    app: demo-frontend
+spec:
+  type: NodePort # Use NodePort for local access
+  ports:
+  - port: 80
+    targetPort: 5002 # Port exposed by the container (matches the Dockerfile)
+  selector:
+    app: demo-frontend
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-demo-frontend
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /*
+          pathType: Prefix
+          backend:
+            service:
+              name: demo-frontend-service
+              port:
+                number: 80
+
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  namespace: default
+  name: vault-connection
+spec:
+  # address to the Vault server.
+  address:
+
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+spec:
+  vaultConnectionRef: vault-connection
+  method: kubernetes
+  mount: eks-octo
+  kubernetes:
+    role: octo-demo
+    serviceAccount: vault-auth
+  namespace: "admin" #Vault Dedicated only
+
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: demo-frontend-secret
+spec:
+  vaultAuthRef: vault-auth
+  namespace: "admin" #Vault Dedicated only
+  mount: secret
+  type: kv-v2
+  path:  octo-demo/demo-frontend-secret
+# version: 2
+  refreshAfter: 30s
+  destination:
+    create: true
+    name: demo-frontend-secret
